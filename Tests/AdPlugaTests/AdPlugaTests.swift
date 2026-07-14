@@ -131,6 +131,7 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertTrue(view.flag("sdk_telemetry"))
     }
 
+    #if canImport(UIKit)
     func testInterstitialAcceptsHtmlFormat() async throws {
         MockURLProtocol.setHandler { request, _ in
             let url = request.url!
@@ -191,6 +192,7 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertEqual(rewarded.ad.rewardAmount, 10)
         XCTAssertEqual(rewarded.ad.rewardCurrency, "COIN")
     }
+    #endif
 }
 
 private enum Fixtures {
