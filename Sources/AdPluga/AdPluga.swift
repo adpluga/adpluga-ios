@@ -135,6 +135,14 @@ public final class AdPluga: @unchecked Sendable {
         }
     }
 
+    public func fireViewable(slotId: String, ad: Ad, token: String) {
+        _ = slotId
+        _ = ad
+        Task {
+            await transport.postTrackViewable(token: token)
+        }
+    }
+
     public func fireClick(slotId: String, ad: Ad, url: String? = nil, token: String?) {
         Task {
             if let url = url {

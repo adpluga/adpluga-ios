@@ -84,6 +84,7 @@ public final class InterstitialAd {
             guard let self = self, let pluga = pluga, !self.impressionFired else { return }
             self.impressionFired = true
             pluga.fireImpression(slotId: self.slotId, ad: self.ad, url: self.response.impressionUrl, token: self.response.impressionToken)
+            pluga.fireViewable(slotId: self.slotId, ad: self.ad, token: self.response.impressionToken)
         }
         presenter.present(controller, animated: true)
     }

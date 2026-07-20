@@ -210,6 +210,7 @@ public final class AdPlugaView: UIView {
             guard let self = self, let pluga = pluga, !self.impressionFired, let ad = self.currentAd else { return }
             self.impressionFired = true
             pluga.fireImpression(slotId: slotId, ad: ad, url: response.impressionUrl, token: response.impressionToken)
+            pluga.fireViewable(slotId: slotId, ad: ad, token: response.impressionToken)
             self.delegate?.adPlugaViewDidRecordImpression(self)
         }
     }

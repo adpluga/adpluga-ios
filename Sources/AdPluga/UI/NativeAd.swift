@@ -33,6 +33,7 @@ public final class NativeAd {
             guard let self = self, let pluga = pluga, !self.impressionFired else { return }
             self.impressionFired = true
             pluga.fireImpression(slotId: self.slotId, ad: self.ad, url: self.response.impressionUrl, token: self.response.impressionToken)
+            pluga.fireViewable(slotId: self.slotId, ad: self.ad, token: self.response.impressionToken)
         }
         let gesture = AdPlugaTapGesture { [weak self, weak pluga] in
             guard let self = self, let pluga = pluga else { return }

@@ -131,6 +131,36 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertTrue(view.flag("sdk_telemetry"))
     }
 
+    func testFireViewablePostsTrackViewableWithToken() async throws {
+        let expectation = expectation(description: "viewable posted")
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/track/viewable" {
+                expectation.fulfill()
+                let http = HTTPURLResponse(url: url, statusCode: 204, httpVersion: "HTTP/1.1", headerFields: [:])!
+                return (http, Data())
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: Fixtures.serveResponse)
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        let served = await pluga.serve(slotId: "slot_1")
+        let response = try XCTUnwrap(served)
+        pluga.fireViewable(slotId: "slot_1", ad: response.ad, token: response.impressionToken)
+        await fulfillment(of: [expectation], timeout: 2.0)
+
+        let viewableRequests = MockURLProtocol.recorded().filter { $0.path == "/v1/track/viewable" }
+        XCTAssertEqual(viewableRequests.count, 1)
+        let body = viewableRequests.first?.body ?? Data()
+        let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+        XCTAssertEqual(json?["token"] as? String, response.impressionToken)
+        XCTAssertEqual(json?["event"] as? String, "viewable")
+    }
+
     #if canImport(UIKit)
     func testInterstitialAcceptsHtmlFormat() async throws {
         MockURLProtocol.setHandler { request, _ in

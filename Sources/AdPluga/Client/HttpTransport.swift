@@ -65,13 +65,24 @@ final class HttpTransport {
     func postTrack(kind: String, payload: [String: Any]) async {
         var full = payload
         full["kind"] = kind
-        let url = endpoint.appendingPathComponent("v1/track")
+        await postTrack(path: "v1/track", payload: full)
+    }
+
+    func postTrackViewable(token: String) async {
+        await postTrack(path: "v1/track/viewable", payload: [
+            "token": token,
+            "event": "viewable",
+        ])
+    }
+
+    private func postTrack(path: String, payload: [String: Any]) async {
+        let url = endpoint.appendingPathComponent(path)
         var request = URLRequest(url: url, timeoutInterval: TimeInterval(Constants.networkTrackTimeoutMs) / 1000.0)
         request.httpMethod = "POST"
         applyStandardHeaders(&request)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         do {
-            let body = try JSONSerialization.data(withJSONObject: full, options: [])
+            let body = try JSONSerialization.data(withJSONObject: payload, options: [])
             request.httpBody = body
             _ = try await sendWithRetry(request: request)
         } catch {

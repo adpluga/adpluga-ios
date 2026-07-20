@@ -2,7 +2,7 @@ import Foundation
 
 enum Constants {
     static let sdkPlatform = "ios"
-    static let sdkVersion = "0.2.0"
+    static let sdkVersion = "0.3.0"
     static let defaultEndpoint = "https://edge.adpluga.com"
 
     static let viewabilityThreshold: Double = 0.5
