@@ -4,6 +4,14 @@ All notable changes to the AdPluga iOS SDK are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-07
+
+### Fixed
+- QuartileFirer now resolves relative ping URLs against the SDK endpoint
+  using `URL(string:relativeTo:)`, fixing quartile tracking when the
+  backend returns relative paths.
+- VideoAdView passes `pluga.endpoint` to QuartileFirer initializer.
+
 ## [0.3.0] — 2026-07
 
 ### Added
