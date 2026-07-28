@@ -108,7 +108,7 @@ public final class AdPlugaView: UIView {
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
                 }
-            case .video:
+            case .video, .videoRewarded, .audio:
                 await MainActor.run {
                     self.currentAd = ad
                     self.currentResponse = response

@@ -7,6 +7,7 @@ public enum AdKind: String, Sendable, Equatable {
     case template
     case video
     case videoRewarded = "video_rewarded"
+    case audio
 
     public var wire: String { rawValue }
 

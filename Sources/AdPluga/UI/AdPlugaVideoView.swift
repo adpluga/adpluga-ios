@@ -54,7 +54,7 @@ public final class AdPlugaVideoView: UIView {
     public func load(videoUrl: URL?, quartilePings: [String: String]? = nil) {
         teardown()
         guard let url = videoUrl, Self.isAllowedScheme(url) else { return }
-        quartileFirer = QuartileFirer(pings: quartilePings)
+        quartileFirer = QuartileFirer(pings: quartilePings, endpoint: AdPluga.maybeInstance?.endpoint)
         let item = AVPlayerItem(url: url)
         let player = AVPlayer(playerItem: item)
         player.isMuted = true

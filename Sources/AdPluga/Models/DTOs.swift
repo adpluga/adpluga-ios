@@ -7,6 +7,8 @@ struct AdDto: Codable {
     let assetUrl: String?
     let html: String?
     let nativeAssets: [String: String]?
+    let videoUrl: String?
+    let audioUrl: String?
     let width: Int?
     let height: Int?
     let durationMs: Int?
@@ -20,6 +22,8 @@ struct AdDto: Codable {
         case id, kind, source, html, width, height, format
         case assetUrl = "asset_url"
         case nativeAssets = "native_assets"
+        case videoUrl = "video_url"
+        case audioUrl = "audio_url"
         case durationMs = "duration_ms"
         case skippableAfterMs = "skippable_after_ms"
         case rewardAmount = "reward_amount"
@@ -32,7 +36,7 @@ struct AdDto: Codable {
             id: id,
             kind: AdKind.fromWire(kind) ?? .image,
             source: source.map { AdSource.fromWire($0) } ?? defaultSource,
-            assetUrl: assetUrl,
+            assetUrl: assetUrl ?? videoUrl ?? audioUrl,
             html: html,
             nativeAssets: nativeAssets,
             width: width,

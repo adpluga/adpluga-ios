@@ -2,12 +2,14 @@ import Foundation
 
 final class QuartileFirer: @unchecked Sendable {
     private let pings: [String: String]?
+    private let endpoint: URL?
     private let session: URLSession
     private let lock = NSLock()
     private var fired: Set<String> = []
 
-    init(pings: [String: String]?, session: URLSession = .shared) {
+    init(pings: [String: String]?, endpoint: URL? = nil, session: URLSession = .shared) {
         self.pings = pings
+        self.endpoint = endpoint
         self.session = session
     }
 
@@ -24,9 +26,8 @@ final class QuartileFirer: @unchecked Sendable {
                 return false
             }()
             if alreadyFired { continue }
-            guard let raw = pings[threshold.key], !raw.isEmpty, let url = URL(string: raw) else {
-                continue
-            }
+            guard let raw = pings[threshold.key], !raw.isEmpty else { continue }
+            guard let url = resolveUrl(raw) else { continue }
             fire(url)
         }
     }
@@ -35,6 +36,16 @@ final class QuartileFirer: @unchecked Sendable {
         lock.lock()
         fired.removeAll()
         lock.unlock()
+    }
+
+    private func resolveUrl(_ raw: String) -> URL? {
+        if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
+            return URL(string: raw)
+        }
+        if let base = endpoint {
+            return URL(string: raw, relativeTo: base)?.absoluteURL
+        }
+        return URL(string: raw)
     }
 
     private func fire(_ url: URL) {
