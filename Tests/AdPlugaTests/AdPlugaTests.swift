@@ -223,6 +223,20 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertEqual(rewarded.ad.rewardCurrency, "COIN")
     }
     #endif
+
+    func testNativeAssetsDecodeFromFlatFields() throws {
+        let data = Data(Fixtures.nativeServeResponse.utf8)
+        let dto = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: data)
+        let model = dto.toModel()
+        XCTAssertEqual(model.ad.kind, .native)
+        XCTAssertEqual(model.ad.source, .pool)
+        XCTAssertEqual(model.impressionToken, "trk_tok")
+        XCTAssertEqual(model.clickToken, "trk_tok")
+        XCTAssertEqual(model.ad.nativeAssets?["title"], "Promo")
+        XCTAssertEqual(model.ad.nativeAssets?["cta_text"], "Comprar")
+        XCTAssertEqual(model.ad.nativeAssets?["icon_url"], "https://cdn.example/icon.png")
+        XCTAssertEqual(model.ad.nativeAssets?["main_image_url"], "https://cdn.example/main.png")
+    }
 }
 
 private enum Fixtures {
@@ -231,15 +245,15 @@ private enum Fixtures {
       "slot_id": "slot_1",
       "ad": {
         "id": "ad_1",
-        "kind": "image",
+        "type": "image",
         "source": "house",
         "asset_url": "https://cdn.example.com/img.png",
         "width": 320,
         "height": 100,
         "reward_currency": "COIN"
       },
-      "impression_token": "imp_tok",
-      "click_token": "clk_tok",
+      "track_token": "trk_tok",
+      "source": "house",
       "impression_url": "https://track.example.com/imp?t=1",
       "click_url": "https://track.example.com/clk?t=1",
       "ttl_ms": 60000
@@ -251,15 +265,15 @@ private enum Fixtures {
       "slot_id": "slot_html",
       "ad": {
         "id": "ad_html_1",
-        "kind": "html",
+        "type": "html",
         "source": "house",
         "html": "<html><body style='margin:0'><a href='https://landing.example/x'>promo</a></body></html>",
         "width": 320,
         "height": 250,
         "reward_currency": "COIN"
       },
-      "impression_token": "imp_tok",
-      "click_token": "clk_tok",
+      "track_token": "trk_tok",
+      "source": "house",
       "impression_url": "https://track.example.com/imp?t=1",
       "click_url": "https://track.example.com/clk?t=1",
       "ttl_ms": 60000
@@ -271,7 +285,7 @@ private enum Fixtures {
       "slot_id": "slot_video",
       "ad": {
         "id": "ad_video_1",
-        "kind": "video",
+        "type": "video",
         "source": "house",
         "asset_url": "https://cdn.adpluga.example/creatives/ad.mp4",
         "width": 640,
@@ -279,8 +293,8 @@ private enum Fixtures {
         "duration_ms": 15000,
         "reward_currency": "COIN"
       },
-      "impression_token": "imp_tok",
-      "click_token": "clk_tok",
+      "track_token": "trk_tok",
+      "source": "house",
       "impression_url": "https://track.example.com/imp?t=vid",
       "click_url": "https://track.example.com/clk?t=vid",
       "ttl_ms": 60000,
@@ -299,7 +313,7 @@ private enum Fixtures {
       "slot_id": "slot_rw",
       "ad": {
         "id": "ad_video_rw_1",
-        "kind": "video_rewarded",
+        "type": "video_rewarded",
         "source": "house",
         "asset_url": "https://cdn.adpluga.example/creatives/rw.mp4",
         "width": 640,
@@ -309,11 +323,30 @@ private enum Fixtures {
         "reward_amount": 10,
         "reward_currency": "COIN"
       },
-      "impression_token": "imp_tok",
-      "click_token": "clk_tok",
+      "track_token": "trk_tok",
+      "source": "house",
       "impression_url": "https://track.example.com/imp?t=rw",
       "click_url": "https://track.example.com/clk?t=rw",
       "ttl_ms": 60000
+    }
+    """
+
+    static let nativeServeResponse = """
+    {
+      "ad": {
+        "id": "ad_native_1",
+        "type": "native",
+        "title": "Promo",
+        "body": "Descontos",
+        "cta_text": "Comprar",
+        "sponsored_by": "AdPluga",
+        "icon_url": "https://cdn.example/icon.png",
+        "main_image_url": "https://cdn.example/main.png"
+      },
+      "track_token": "trk_tok",
+      "source": "pool",
+      "impression_url": "https://track.example.com/imp?t=nat",
+      "click_url": "https://track.example.com/clk?t=nat"
     }
     """
 }

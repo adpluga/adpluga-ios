@@ -2,13 +2,18 @@ import Foundation
 
 struct AdDto: Codable {
     let id: String
-    let kind: String
-    let source: String?
+    let type: String
     let assetUrl: String?
     let html: String?
-    let nativeAssets: [String: String]?
+    let title: String?
+    let body: String?
+    let ctaText: String?
+    let sponsoredBy: String?
+    let iconUrl: String?
+    let mainImageUrl: String?
     let videoUrl: String?
     let audioUrl: String?
+    let vastUrl: String?
     let width: Int?
     let height: Int?
     let durationMs: Int?
@@ -19,11 +24,15 @@ struct AdDto: Codable {
     let advertiserName: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, kind, source, html, width, height, format
+        case id, type, html, title, body, width, height, format
         case assetUrl = "asset_url"
-        case nativeAssets = "native_assets"
+        case ctaText = "cta_text"
+        case sponsoredBy = "sponsored_by"
+        case iconUrl = "icon_url"
+        case mainImageUrl = "main_image_url"
         case videoUrl = "video_url"
         case audioUrl = "audio_url"
+        case vastUrl = "vast_url"
         case durationMs = "duration_ms"
         case skippableAfterMs = "skippable_after_ms"
         case rewardAmount = "reward_amount"
@@ -31,14 +40,14 @@ struct AdDto: Codable {
         case advertiserName = "advertiser_name"
     }
 
-    func toModel(defaultSource: AdSource) -> Ad {
+    func toModel(source: AdSource) -> Ad {
         Ad(
             id: id,
-            kind: AdKind.fromWire(kind) ?? .image,
-            source: source.map { AdSource.fromWire($0) } ?? defaultSource,
-            assetUrl: assetUrl ?? videoUrl ?? audioUrl,
+            kind: AdKind.fromWire(type) ?? .image,
+            source: source,
+            assetUrl: assetUrl ?? videoUrl ?? audioUrl ?? vastUrl,
             html: html,
-            nativeAssets: nativeAssets,
+            nativeAssets: buildNativeAssets(),
             width: width,
             height: height,
             durationMs: durationMs,
@@ -49,38 +58,53 @@ struct AdDto: Codable {
             advertiserName: advertiserName
         )
     }
+
+    // Native assets arrive as flat top-level fields on the serve contract;
+    // expose them as a map so integrators compose their own view.
+    private func buildNativeAssets() -> [String: String]? {
+        var m: [String: String] = [:]
+        if let title { m["title"] = title }
+        if let body { m["body"] = body }
+        if let ctaText { m["cta_text"] = ctaText }
+        if let sponsoredBy { m["sponsored_by"] = sponsoredBy }
+        if let iconUrl { m["icon_url"] = iconUrl }
+        if let mainImageUrl { m["main_image_url"] = mainImageUrl }
+        return m.isEmpty ? nil : m
+    }
 }
 
 struct ServeResponseDto: Codable {
-    let slotId: String
     let ad: AdDto
     let impressionUrl: String?
     let clickUrl: String?
-    let impressionToken: String
-    let clickToken: String?
-    let ttlMs: Int?
+    let conversionUrl: String?
+    let trackToken: String
+    let conversionToken: String?
+    let source: String?
     let quartilePings: [String: String]?
 
     enum CodingKeys: String, CodingKey {
-        case ad
-        case slotId = "slot_id"
+        case ad, source
         case impressionUrl = "impression_url"
         case clickUrl = "click_url"
-        case impressionToken = "impression_token"
-        case clickToken = "click_token"
-        case ttlMs = "ttl_ms"
+        case conversionUrl = "conversion_url"
+        case trackToken = "track_token"
+        case conversionToken = "conversion_token"
         case quartilePings = "quartile_pings"
     }
 
     func toModel() -> ServeResponse {
-        ServeResponse(
-            slotId: slotId,
-            ad: ad.toModel(defaultSource: .house),
+        let src = source.map { AdSource.fromWire($0) } ?? .house
+        // One signed track_token covers impression/click/viewable; the event
+        // is disambiguated by the endpoint / body. Both slots carry it.
+        return ServeResponse(
+            slotId: "",
+            ad: ad.toModel(source: src),
             impressionUrl: impressionUrl,
             clickUrl: clickUrl,
-            impressionToken: impressionToken,
-            clickToken: clickToken,
-            ttlMs: ttlMs,
+            impressionToken: trackToken,
+            clickToken: trackToken,
+            ttlMs: nil,
             quartilePings: quartilePings
         )
     }

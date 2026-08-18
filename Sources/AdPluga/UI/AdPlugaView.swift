@@ -21,6 +21,7 @@ public final class AdPlugaView: UIView {
 
     private var currentAd: Ad?
     private var currentResponse: ServeResponse?
+    private var currentSlotId: String?
     private var loadTask: Task<Void, Never>?
     private var viewabilityHandle: Int?
     private var impressionFired = false
@@ -68,6 +69,7 @@ public final class AdPlugaView: UIView {
             return
         }
         let slot = slotId
+        currentSlotId = slot
         loadTask = Task { [weak self] in
             guard let self = self else { return }
             let response = await pluga.serve(slotId: slot, format: format)
@@ -218,7 +220,7 @@ public final class AdPlugaView: UIView {
     @objc private func handleTap() {
         guard let ad = currentAd, let response = currentResponse, let pluga = AdPluga.maybeInstance else { return }
         if ad.kind == .html || ad.kind == .video { return }
-        pluga.fireClick(slotId: response.slotId, ad: ad, url: response.clickUrl, token: response.clickToken)
+        pluga.fireClick(slotId: currentSlotId ?? "", ad: ad, url: response.clickUrl, token: response.clickToken)
         delegate?.adPlugaViewDidClick(self)
     }
 

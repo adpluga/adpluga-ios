@@ -125,9 +125,9 @@ public final class AdPluga: @unchecked Sendable {
                 await transport.beacon(url: url)
             } else {
                 await transport.postTrack(kind: "impression", payload: [
-                    "slot_id": slotId,
+                    "token": token,
+                    "event": "impression",
                     "ad_id": ad.id,
-                    "impression_token": token,
                 ])
             }
             await telemetry.record(type: .impression)
@@ -149,9 +149,9 @@ public final class AdPluga: @unchecked Sendable {
                 await transport.beacon(url: url)
             } else if let token = token {
                 await transport.postTrack(kind: "click", payload: [
-                    "slot_id": slotId,
+                    "token": token,
+                    "event": "click",
                     "ad_id": ad.id,
-                    "click_token": token,
                 ])
             }
             await telemetry.record(type: .click)
