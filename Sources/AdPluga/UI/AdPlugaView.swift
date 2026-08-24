@@ -29,6 +29,7 @@ public final class AdPlugaView: UIView {
     private var htmlProxy: _HtmlClickProxy?
     private var videoView: AdPlugaVideoView?
     private var videoProxy: _VideoDelegateProxy?
+    private var testBadge: UIView?
 
     private let imageView: UIImageView = {
         let view = UIImageView()
@@ -95,6 +96,7 @@ public final class AdPlugaView: UIView {
                         self.imageView.isHidden = false
                         self.currentAd = ad
                         self.currentResponse = response
+                        self.updateTestBadge(ad)
                         self.delegate?.adPlugaView(self, didLoad: ad)
                         self.attachViewability(slotId: slot, response: response, pluga: pluga)
                     } else {
@@ -107,6 +109,7 @@ public final class AdPlugaView: UIView {
                     self.currentResponse = response
                     self.imageView.isHidden = true
                     self.renderHtml(ad: ad, slotId: slot, response: response, pluga: pluga)
+                    self.updateTestBadge(ad)
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
                 }
@@ -116,6 +119,7 @@ public final class AdPlugaView: UIView {
                     self.currentResponse = response
                     self.imageView.isHidden = true
                     self.renderVideo(ad: ad, slotId: slot, response: response, pluga: pluga)
+                    self.updateTestBadge(ad)
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
                 }
@@ -196,6 +200,14 @@ public final class AdPlugaView: UIView {
         videoView?.removeFromSuperview()
         videoView = nil
         videoProxy = nil
+    }
+
+    @MainActor
+    private func updateTestBadge(_ ad: Ad) {
+        testBadge?.removeFromSuperview()
+        testBadge = nil
+        guard ad.isTest else { return }
+        testBadge = TestBadge.attach(to: self)
     }
 
     private static func loadImage(from url: URL) async -> UIImage? {

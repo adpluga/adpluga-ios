@@ -53,6 +53,7 @@ public final class RewardedAd {
             clickThroughUrl: response.clickUrl.flatMap { URL(string: $0) },
             durationSeconds: duration,
             skippableAfterMs: ad.skippableAfterMs ?? 0,
+            showTestBadge: ad.isTest,
             onClick: { [weak self, weak pluga] in
                 guard let self = self, let pluga = pluga else { return }
                 pluga.fireClick(slotId: self.slotId, ad: self.ad, url: self.response.clickUrl, token: self.response.clickToken)
@@ -93,6 +94,7 @@ final class RewardedViewController: UIViewController, AdPlugaVideoViewDelegate {
     private let clickThroughUrl: URL?
     private let durationSeconds: Int
     private let skippableAfterMs: Int
+    private let showTestBadge: Bool
     private let onClick: () -> Void
     private let onReward: () -> Void
     private let onDismiss: () -> Void
@@ -114,6 +116,7 @@ final class RewardedViewController: UIViewController, AdPlugaVideoViewDelegate {
         clickThroughUrl: URL?,
         durationSeconds: Int,
         skippableAfterMs: Int,
+        showTestBadge: Bool,
         onClick: @escaping () -> Void,
         onReward: @escaping () -> Void,
         onDismiss: @escaping () -> Void
@@ -124,6 +127,7 @@ final class RewardedViewController: UIViewController, AdPlugaVideoViewDelegate {
         self.clickThroughUrl = clickThroughUrl
         self.durationSeconds = durationSeconds
         self.skippableAfterMs = skippableAfterMs
+        self.showTestBadge = showTestBadge
         self.remaining = durationSeconds
         self.onClick = onClick
         self.onReward = onReward
@@ -190,6 +194,10 @@ final class RewardedViewController: UIViewController, AdPlugaVideoViewDelegate {
             closeBtn.widthAnchor.constraint(equalToConstant: 44),
             closeBtn.heightAnchor.constraint(equalToConstant: 44),
         ])
+
+        if showTestBadge {
+            TestBadge.attach(to: view)
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {

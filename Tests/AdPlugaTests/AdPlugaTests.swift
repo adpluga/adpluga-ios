@@ -224,6 +224,19 @@ final class AdPlugaTests: XCTestCase {
     }
     #endif
 
+    func testTestFlagDecodesToIsTest() throws {
+        let onData = Data(Fixtures.testFlagServeResponse.utf8)
+        let onModel = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: onData).toModel()
+        XCTAssertTrue(onModel.ad.isTest)
+
+        let offData = Data(Fixtures.testFlagFalseServeResponse.utf8)
+        let offModel = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: offData).toModel()
+        XCTAssertFalse(offModel.ad.isTest)
+
+        let absentModel = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: Data(Fixtures.serveResponse.utf8)).toModel()
+        XCTAssertFalse(absentModel.ad.isTest)
+    }
+
     func testNativeAssetsDecodeFromFlatFields() throws {
         let data = Data(Fixtures.nativeServeResponse.utf8)
         let dto = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: data)
@@ -328,6 +341,38 @@ private enum Fixtures {
       "impression_url": "https://track.example.com/imp?t=rw",
       "click_url": "https://track.example.com/clk?t=rw",
       "ttl_ms": 60000
+    }
+    """
+
+    static let testFlagServeResponse = """
+    {
+      "slot_id": "slot_test",
+      "ad": {
+        "id": "ad_test_1",
+        "type": "image",
+        "source": "house",
+        "asset_url": "https://cdn.example.com/img.png",
+        "test": true,
+        "reward_currency": "COIN"
+      },
+      "track_token": "trk_tok",
+      "source": "house"
+    }
+    """
+
+    static let testFlagFalseServeResponse = """
+    {
+      "slot_id": "slot_test",
+      "ad": {
+        "id": "ad_test_2",
+        "type": "image",
+        "source": "house",
+        "asset_url": "https://cdn.example.com/img.png",
+        "test": false,
+        "reward_currency": "COIN"
+      },
+      "track_token": "trk_tok",
+      "source": "house"
     }
     """
 

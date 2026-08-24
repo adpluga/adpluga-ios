@@ -39,6 +39,7 @@ public final class InterstitialAd {
                 videoUrl: nil,
                 quartilePings: nil,
                 clickThroughUrl: nil,
+                showTestBadge: ad.isTest,
                 onClick: { [weak self, weak pluga] in
                     guard let self = self, let pluga = pluga else { return }
                     pluga.fireClick(slotId: self.slotId, ad: self.ad, url: self.response.clickUrl, token: self.response.clickToken)
@@ -54,6 +55,7 @@ public final class InterstitialAd {
                 videoUrl: videoUrl,
                 quartilePings: response.quartilePings,
                 clickThroughUrl: response.clickUrl.flatMap { URL(string: $0) },
+                showTestBadge: ad.isTest,
                 onClick: { [weak self, weak pluga] in
                     guard let self = self, let pluga = pluga else { return }
                     pluga.fireClick(slotId: self.slotId, ad: self.ad, url: self.response.clickUrl, token: self.response.clickToken)
@@ -72,6 +74,7 @@ public final class InterstitialAd {
                 videoUrl: nil,
                 quartilePings: nil,
                 clickThroughUrl: nil,
+                showTestBadge: ad.isTest,
                 onClick: { [weak self, weak pluga] in
                     guard let self = self, let pluga = pluga else { return }
                     pluga.fireClick(slotId: self.slotId, ad: self.ad, url: self.response.clickUrl, token: self.response.clickToken)
@@ -106,6 +109,7 @@ final class InterstitialViewController: UIViewController, AdPlugaHtmlViewDelegat
     private let videoUrl: URL?
     private let quartilePings: [String: String]?
     private let clickThroughUrl: URL?
+    private let showTestBadge: Bool
     private let onClick: () -> Void
     private let onDismiss: () -> Void
     var onShow: (() -> Void)?
@@ -117,6 +121,7 @@ final class InterstitialViewController: UIViewController, AdPlugaHtmlViewDelegat
         videoUrl: URL?,
         quartilePings: [String: String]?,
         clickThroughUrl: URL?,
+        showTestBadge: Bool,
         onClick: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) {
@@ -126,6 +131,7 @@ final class InterstitialViewController: UIViewController, AdPlugaHtmlViewDelegat
         self.videoUrl = videoUrl
         self.quartilePings = quartilePings
         self.clickThroughUrl = clickThroughUrl
+        self.showTestBadge = showTestBadge
         self.onClick = onClick
         self.onDismiss = onDismiss
         super.init(nibName: nil, bundle: nil)
@@ -191,6 +197,10 @@ final class InterstitialViewController: UIViewController, AdPlugaHtmlViewDelegat
             closeBtn.widthAnchor.constraint(equalToConstant: 44),
             closeBtn.heightAnchor.constraint(equalToConstant: 44),
         ])
+
+        if showTestBadge {
+            TestBadge.attach(to: view)
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {

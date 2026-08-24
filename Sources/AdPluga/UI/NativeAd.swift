@@ -9,6 +9,7 @@ public final class NativeAd {
     private var impressionFired = false
     private weak var attachedContainer: UIView?
     private var attachedGesture: AdPlugaTapGesture?
+    private var testBadge: UIView?
 
     fileprivate init(slotId: String, response: ServeResponse) {
         self.slotId = slotId
@@ -43,6 +44,9 @@ public final class NativeAd {
         attachedGesture = gesture
         container.isUserInteractionEnabled = true
         container.addGestureRecognizer(gesture)
+        if ad.isTest {
+            testBadge = TestBadge.attach(to: container)
+        }
     }
 
     @MainActor
@@ -61,6 +65,8 @@ public final class NativeAd {
         }
         attachedGesture = nil
         attachedContainer = nil
+        testBadge?.removeFromSuperview()
+        testBadge = nil
     }
 }
 

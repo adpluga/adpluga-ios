@@ -46,6 +46,7 @@ public struct Ad: Sendable, Equatable {
     public let rewardCurrency: String
     public let format: String?
     public let advertiserName: String?
+    public let isTest: Bool
 }
 
 public struct ServeResponse: Sendable, Equatable {

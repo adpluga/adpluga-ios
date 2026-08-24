@@ -22,9 +22,10 @@ struct AdDto: Codable {
     let rewardCurrency: String?
     let format: String?
     let advertiserName: String?
+    let test: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, type, html, title, body, width, height, format
+        case id, type, html, title, body, width, height, format, test
         case assetUrl = "asset_url"
         case ctaText = "cta_text"
         case sponsoredBy = "sponsored_by"
@@ -55,7 +56,8 @@ struct AdDto: Codable {
             rewardAmount: rewardAmount,
             rewardCurrency: rewardCurrency ?? "COIN",
             format: format,
-            advertiserName: advertiserName
+            advertiserName: advertiserName,
+            isTest: test ?? false
         )
     }
 
