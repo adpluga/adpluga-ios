@@ -37,6 +37,7 @@ public struct Ad: Sendable, Equatable {
     public let source: AdSource
     public let assetUrl: String?
     public let html: String?
+    public let billingUrl: String?
     public let nativeAssets: [String: String]?
     public let width: Int?
     public let height: Int?

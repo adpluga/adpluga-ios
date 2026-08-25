@@ -137,9 +137,16 @@ public final class AdPluga: @unchecked Sendable {
 
     public func fireViewable(slotId: String, ad: Ad, token: String) {
         _ = slotId
-        _ = ad
+        // Mediation fills carry no AdPluga track token: the billable impression
+        // is reported to the bidder by firing its burl once. First-party fills
+        // report the viewable to /track/viewable instead.
         Task {
-            await transport.postTrackViewable(token: token)
+            if let billingUrl = ad.billingUrl, !billingUrl.isEmpty {
+                await transport.beacon(url: billingUrl)
+            }
+            if !token.isEmpty {
+                await transport.postTrackViewable(token: token)
+            }
         }
     }
 

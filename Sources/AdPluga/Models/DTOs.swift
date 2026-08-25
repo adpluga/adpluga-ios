@@ -5,6 +5,7 @@ struct AdDto: Codable {
     let type: String
     let assetUrl: String?
     let html: String?
+    let billingUrl: String?
     let title: String?
     let body: String?
     let ctaText: String?
@@ -27,6 +28,7 @@ struct AdDto: Codable {
     enum CodingKeys: String, CodingKey {
         case id, type, html, title, body, width, height, format, test
         case assetUrl = "asset_url"
+        case billingUrl = "billing_url"
         case ctaText = "cta_text"
         case sponsoredBy = "sponsored_by"
         case iconUrl = "icon_url"
@@ -48,6 +50,7 @@ struct AdDto: Codable {
             source: source,
             assetUrl: assetUrl ?? videoUrl ?? audioUrl ?? vastUrl,
             html: html,
+            billingUrl: billingUrl,
             nativeAssets: buildNativeAssets(),
             width: width,
             height: height,
