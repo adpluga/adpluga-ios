@@ -267,8 +267,10 @@ public final class AdPlugaView: UIView {
         cancelRefresh()
         guard foreground else { return }
         let secs = response.refreshAfterSeconds
-        guard secs >= Constants.minRefreshSeconds else { return }
-        let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(secs), repeats: false) { [weak self] _ in
+        guard secs > 0 else { return }
+        let floor = response.ad.isTest ? Constants.minRefreshSecondsTest : Constants.minRefreshSeconds
+        let interval = TimeInterval(max(secs, floor))
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.onRefreshTick() }
         }
         refreshTimer = timer

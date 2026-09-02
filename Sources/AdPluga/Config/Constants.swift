@@ -5,10 +5,12 @@ enum Constants {
     static let sdkVersion = "0.5.1"
     static let defaultEndpoint = "https://edge.adpluga.com"
 
-    /// Rotation cadences below this floor are ignored even when the server
-    /// sends one: it matches the 30s minimum the mobile ad industry enforces
-    /// and keeps a misconfigured slot from burning the publisher's quota.
+    /// A cadence below the floor is raised to it, never dropped, so a slot
+    /// always keeps rotating. Live traffic honours the 30s minimum the mobile
+    /// ad industry enforces; sandbox creatives may rotate every 15s so an
+    /// integrator can watch it work without waiting.
     static let minRefreshSeconds: Int = 30
+    static let minRefreshSecondsTest: Int = 15
 
     static let viewabilityThreshold: Double = 0.5
     static let viewabilityDurationMs: Int = 1_000
