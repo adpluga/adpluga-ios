@@ -91,8 +91,19 @@ final class HttpTransport {
         }
     }
 
+    /// Fires a one-shot tracking GET. The serve contract may hand back a
+    /// path-only URL, which URLSession rejects as an unsupported URL, so it is
+    /// resolved against the configured endpoint before dialling.
+    private func absolute(_ urlString: String) -> URL? {
+        if urlString.hasPrefix("http://") || urlString.hasPrefix("https://") {
+            return URL(string: urlString)
+        }
+        let path = urlString.hasPrefix("/") ? String(urlString.dropFirst()) : urlString
+        return URL(string: path, relativeTo: endpoint)
+    }
+
     func beacon(url urlString: String) async {
-        guard let url = URL(string: urlString) else { return }
+        guard let url = absolute(urlString) else { return }
         var request = URLRequest(url: url, timeoutInterval: TimeInterval(Constants.networkTrackTimeoutMs) / 1000.0)
         request.httpMethod = "GET"
         request.setValue(Constants.sdkPlatform, forHTTPHeaderField: Constants.platformHeader)

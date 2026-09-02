@@ -393,9 +393,80 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertEqual(clicks, 1)
     }
     #endif
+
+    func testPathOnlyTrackingURLsAreDialledAgainstTheEndpoint() async throws {
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(
+                    url: url,
+                    body: Fixtures.serveResponseRelativeTracking
+                )
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        let served = await pluga.serve(slotId: "slot_1")
+        let response = try XCTUnwrap(served)
+        XCTAssertEqual(response.impressionUrl, "/v1/imp?t=abc")
+
+        pluga.fireImpression(
+            slotId: "slot_1",
+            ad: response.ad,
+            url: response.impressionUrl,
+            token: response.impressionToken
+        )
+        pluga.fireClick(
+            slotId: "slot_1",
+            ad: response.ad,
+            url: response.clickUrl,
+            token: response.clickToken
+        )
+        try await Task.sleep(nanoseconds: 300_000_000)
+
+        let paths = Set(MockURLProtocol.recorded().map(\.path))
+        XCTAssertTrue(
+            paths.contains("/v1/imp"),
+            "impression beacon never left the device: \(paths)"
+        )
+        XCTAssertTrue(
+            paths.contains("/v1/click"),
+            "click beacon never left the device: \(paths)"
+        )
+    }
+
 }
 
 private enum Fixtures {
+    // Mirrors what /v1/serve actually emits: path-only tracking URLs.
+    // URLSession rejects a relative URL as unsupported, so this fixture is what
+    // guards the impression and click from being dropped before they leave the
+    // device.
+    static let serveResponseRelativeTracking = """
+    {
+      "slot_id": "slot_1",
+      "ad": {
+        "id": "ad_rel_1",
+        "type": "image",
+        "source": "pool",
+        "asset_url": "https://cdn.example.com/img.png",
+        "width": 320,
+        "height": 100,
+        "reward_currency": "COIN"
+      },
+      "track_token": "trk_tok",
+      "source": "pool",
+      "impression_url": "/v1/imp?t=abc",
+      "click_url": "/v1/click?t=xyz",
+      "ttl_ms": 60000
+    }
+    """
+
     static let serveResponse = """
     {
       "slot_id": "slot_1",
