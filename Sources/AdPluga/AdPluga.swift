@@ -22,6 +22,8 @@ public final class AdPluga: @unchecked Sendable {
     let publisherKey: String
     let endpoint: URL
     let consentStore: ConsentStore
+    private let installIdLock = NSLock()
+    private var installId: String?
     let transport: HttpTransport
     let features: FeaturesCache
     let telemetry: TelemetryBatcher
@@ -88,6 +90,21 @@ public final class AdPluga: @unchecked Sendable {
         }
     }
 
+    /// First-party install id used for frequency capping and first-party
+    /// audiences. Only released when the current consent state allows
+    /// personalisation; without it the request carries no user at all and the
+    /// server skips both gates. Held in memory for the process lifetime — pass
+    /// `userHash` explicitly to key the daily cap across app launches.
+    private func resolvedUserId() -> String? {
+        guard consentStore.state.isPersonalized else { return nil }
+        installIdLock.lock()
+        defer { installIdLock.unlock() }
+        if let existing = installId { return existing }
+        let generated = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+        installId = generated
+        return generated
+    }
+
     public func serve(slotId: String, format: String? = nil, userHash: String? = nil, refreshSeq: Int = 0) async -> ServeResponse? {
         upgradeLock.lock()
         if upgradeBlocked {
@@ -99,7 +116,7 @@ public final class AdPluga: @unchecked Sendable {
         let startMs = Self.nowMs()
         await telemetry.record(type: .serveRequest)
         do {
-            let response = try await transport.serve(slotId: slotId, format: format, userHash: userHash, refreshSeq: refreshSeq)
+            let response = try await transport.serve(slotId: slotId, format: format, userHash: userHash ?? resolvedUserId(), refreshSeq: refreshSeq)
             let latency = Int(Self.nowMs() - startMs)
             await telemetry.record(type: .serveResponse, latencyMs: latency)
             emit(.adServed(slotId: slotId, ad: response.ad, at: Date()))

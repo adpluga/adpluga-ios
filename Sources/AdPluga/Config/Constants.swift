@@ -2,7 +2,7 @@ import Foundation
 
 enum Constants {
     static let sdkPlatform = "ios"
-    static let sdkVersion = "0.5.0"
+    static let sdkVersion = "0.5.1"
     static let defaultEndpoint = "https://edge.adpluga.com"
 
     /// Rotation cadences below this floor are ignored even when the server

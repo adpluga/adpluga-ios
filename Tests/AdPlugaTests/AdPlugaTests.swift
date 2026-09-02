@@ -237,6 +237,50 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertFalse(absentModel.ad.isTest)
     }
 
+    func testServeSendsUserIdAsUWhenPersonalised() async throws {
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(url: url, body: Fixtures.serveResponse)
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        _ = await pluga.serve(slotId: "slot_1")
+
+        let query = MockURLProtocol.recorded().first { $0.path == "/v1/serve" }?.query ?? ""
+        // The backend reads `u`; `user_hash` was silently ignored, which left
+        // frequency capping and first-party audiences dead on mobile.
+        XCTAssertTrue(query.contains("u="), "serve must carry the user id as u: \(query)")
+        XCTAssertFalse(query.contains("user_hash="), "user_hash is not read by the server")
+    }
+
+    func testServeOmitsUserIdWithoutPersonalisationConsent() async throws {
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(url: url, body: Fixtures.serveResponse)
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            consent: ConsentState(adPersonalization: false),
+            sessionOverride: session
+        )
+        _ = await pluga.serve(slotId: "slot_1")
+
+        let query = MockURLProtocol.recorded().first { $0.path == "/v1/serve" }?.query ?? ""
+        XCTAssertFalse(query.contains("u="), "no user id may leave the device without consent: \(query)")
+    }
+
     func testRotationCadenceDecodes() throws {
         let json = """
         {"ad":{"id":"ad-1","type":"image"},"track_token":"trk","source":"house","refresh_after_seconds":60}

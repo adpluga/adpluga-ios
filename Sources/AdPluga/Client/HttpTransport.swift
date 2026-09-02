@@ -25,7 +25,7 @@ final class HttpTransport {
         }
         var items: [URLQueryItem] = [URLQueryItem(name: "slot", value: slotId)]
         if let fmt = format { items.append(URLQueryItem(name: "format", value: fmt)) }
-        if let hash = userHash { items.append(URLQueryItem(name: "user_hash", value: hash)) }
+        if let hash = userHash { items.append(URLQueryItem(name: "u", value: hash)) }
         if refreshSeq > 0 { items.append(URLQueryItem(name: "rq", value: String(refreshSeq))) }
         if !consent.state.isPersonalized {
             items.append(URLQueryItem(name: "non_personalized", value: "true"))
