@@ -29,6 +29,8 @@ public final class AdPlugaView: UIView {
     private var htmlProxy: _HtmlClickProxy?
     private var videoView: AdPlugaVideoView?
     private var videoProxy: _VideoDelegateProxy?
+    private var carouselView: AdPlugaCarouselView?
+    private var lastDeckSwipeAt: Date?
     private var testBadge: UIView?
     private var refreshTimer: Timer?
     private var refreshSeq: Int = 0
@@ -105,6 +107,7 @@ public final class AdPlugaView: UIView {
                 await MainActor.run {
                     if let image = image {
                         self.teardownHtml()
+                        self.teardownCarousel()
                         self.imageView.image = image
                         self.imageView.isHidden = false
                         self.currentAd = ad
@@ -123,6 +126,25 @@ public final class AdPlugaView: UIView {
                     self.currentResponse = response
                     self.imageView.isHidden = true
                     self.renderHtml(ad: ad, slotId: slot, response: response, pluga: pluga)
+                    self.updateTestBadge(ad)
+                    self.delegate?.adPlugaView(self, didLoad: ad)
+                    self.attachViewability(slotId: slot, response: response, pluga: pluga)
+                    self.scheduleRefresh(response)
+                }
+            case .carousel:
+                var images: [UIImage?] = []
+                for slide in ad.slides {
+                    if let url = URL(string: slide.assetUrl) {
+                        images.append(await Self.loadImage(from: url))
+                    } else {
+                        images.append(nil)
+                    }
+                }
+                await MainActor.run {
+                    self.currentAd = ad
+                    self.currentResponse = response
+                    self.imageView.isHidden = true
+                    self.renderCarousel(ad: ad, slotId: slot, response: response, pluga: pluga, images: images)
                     self.updateTestBadge(ad)
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
@@ -149,6 +171,7 @@ public final class AdPlugaView: UIView {
 
     @MainActor
     private func renderHtml(ad: Ad, slotId: String, response: ServeResponse, pluga: AdPluga) {
+        teardownCarousel()
         let view = htmlView ?? {
             let view = AdPlugaHtmlView(frame: .zero)
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -182,8 +205,47 @@ public final class AdPlugaView: UIView {
     }
 
     @MainActor
+    private func renderCarousel(
+        ad: Ad,
+        slotId: String,
+        response: ServeResponse,
+        pluga: AdPluga,
+        images: [UIImage?]
+    ) {
+        teardownHtml()
+        teardownVideo()
+        teardownCarousel()
+        let view = AdPlugaCarouselView(frame: .zero)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(view)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: topAnchor),
+            view.leadingAnchor.constraint(equalTo: leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: trailingAnchor),
+            view.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        view.onClick = { [weak self] in
+            guard let self = self else { return }
+            pluga.fireClick(slotId: slotId, ad: ad, url: response.clickUrl, token: response.clickToken)
+            self.delegate?.adPlugaViewDidClick(self)
+        }
+        view.onSwipe = { [weak self] in self?.lastDeckSwipeAt = Date() }
+        view.bind(slides: ad.slides, images: images)
+        carouselView = view
+    }
+
+    @MainActor
+    private func teardownCarousel() {
+        carouselView?.teardown()
+        carouselView?.removeFromSuperview()
+        carouselView = nil
+        lastDeckSwipeAt = nil
+    }
+
+    @MainActor
     private func renderVideo(ad: Ad, slotId: String, response: ServeResponse, pluga: AdPluga) {
         teardownHtml()
+        teardownCarousel()
         let view = videoView ?? {
             let view = AdPlugaVideoView(frame: .zero)
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -247,7 +309,7 @@ public final class AdPlugaView: UIView {
 
     @objc private func handleTap() {
         guard let ad = currentAd, let response = currentResponse, let pluga = AdPluga.maybeInstance else { return }
-        if ad.kind == .html || ad.kind == .video { return }
+        if ad.kind == .html || ad.kind == .video || ad.kind == .carousel { return }
         pluga.fireClick(slotId: currentSlotId ?? "", ad: ad, url: response.clickUrl, token: response.clickToken)
         delegate?.adPlugaViewDidClick(self)
     }
@@ -290,6 +352,14 @@ public final class AdPlugaView: UIView {
         // MRC guidelines classify as non-viewable: wait for it to come back
         // into view instead, re-arming on the same cadence.
         guard ViewabilityTracker.shared.isVisible(self) else {
+            scheduleRefresh(response)
+            return
+        }
+        // A deck the reader is still swiping through keeps the slot; rotation
+        // resumes one full cadence after the last swipe.
+        let secs = response.refreshAfterSeconds
+        if let last = lastDeckSwipeAt, secs > 0,
+           Date().timeIntervalSince(last) < TimeInterval(secs) {
             scheduleRefresh(response)
             return
         }

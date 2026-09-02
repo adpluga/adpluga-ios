@@ -1,5 +1,18 @@
 import Foundation
 
+struct SlideDto: Codable {
+    let assetUrl: String?
+    let title: String?
+    let body: String?
+    let ctaText: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title, body
+        case assetUrl = "asset_url"
+        case ctaText = "cta_text"
+    }
+}
+
 struct AdDto: Codable {
     let id: String
     let type: String
@@ -23,10 +36,11 @@ struct AdDto: Codable {
     let rewardCurrency: String?
     let format: String?
     let advertiserName: String?
+    let slides: [SlideDto]?
     let test: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, type, html, title, body, width, height, format, test
+        case id, type, html, title, body, width, height, format, test, slides
         case assetUrl = "asset_url"
         case billingUrl = "billing_url"
         case ctaText = "cta_text"
@@ -60,8 +74,19 @@ struct AdDto: Codable {
             rewardCurrency: rewardCurrency ?? "COIN",
             format: format,
             advertiserName: advertiserName,
+            slides: buildSlides(),
             isTest: test ?? false
         )
+    }
+
+    // A slide without a creative cannot be drawn, so it is dropped rather
+    // than rendered as a blank card in the middle of the deck.
+    private func buildSlides() -> [Slide] {
+        guard let slides else { return [] }
+        return slides.compactMap { dto in
+            guard let url = dto.assetUrl, !url.isEmpty else { return nil }
+            return Slide(assetUrl: url, title: dto.title, body: dto.body, ctaText: dto.ctaText)
+        }
     }
 
     // Native assets arrive as flat top-level fields on the serve contract;

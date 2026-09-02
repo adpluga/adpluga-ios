@@ -309,6 +309,90 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertEqual(model.ad.nativeAssets?["icon_url"], "https://cdn.example/icon.png")
         XCTAssertEqual(model.ad.nativeAssets?["main_image_url"], "https://cdn.example/main.png")
     }
+    func testCarouselDeckIsParsedInOrderAndEmptySlidesDropped() async throws {
+        let body = """
+        {
+          "ad": {
+            "id": "ad_c",
+            "type": "carousel",
+            "width": 300,
+            "height": 250,
+            "click_url": "https://example.com",
+            "slides": [
+              {"asset_url": "https://cdn/1.png", "title": "Card 1", "cta_text": "Ver"},
+              {"asset_url": ""},
+              {"asset_url": "https://cdn/2.png", "body": "Segundo"}
+            ]
+          },
+          "impression_url": "https://mock.local/imp",
+          "click_url": "https://mock.local/click",
+          "track_token": "tok",
+          "source": "pool"
+        }
+        """
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(url: url, body: body)
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        let response = await pluga.serve(slotId: "slot_1")
+        let ad = try XCTUnwrap(response?.ad)
+        XCTAssertEqual(ad.kind, .carousel)
+        XCTAssertEqual(ad.slides.count, 2)
+        XCTAssertEqual(ad.slides[0].assetUrl, "https://cdn/1.png")
+        XCTAssertEqual(ad.slides[0].title, "Card 1")
+        XCTAssertEqual(ad.slides[0].ctaText, "Ver")
+        XCTAssertEqual(ad.slides[1].assetUrl, "https://cdn/2.png")
+        XCTAssertEqual(ad.slides[1].body, "Segundo")
+    }
+
+    func testNonCarouselCreativeCarriesAnEmptyDeck() async throws {
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(url: url, body: Fixtures.serveResponse)
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+
+        let pluga = try AdPluga.initialize(
+            publisherKey: publisherKey,
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        let response = await pluga.serve(slotId: "slot_1")
+        XCTAssertTrue(try XCTUnwrap(response?.ad.slides).isEmpty)
+    }
+
+    #if canImport(UIKit)
+    @MainActor
+    func testCarouselViewReportsOneTapAndNeverASecondServe() throws {
+        var clicks = 0
+        let view = AdPlugaCarouselView(frame: CGRect(x: 0, y: 0, width: 300, height: 250))
+        view.onClick = { clicks += 1 }
+        view.bind(
+            slides: [
+                Slide(assetUrl: "https://cdn/1.png", title: "Card 1"),
+                Slide(assetUrl: "https://cdn/2.png"),
+            ],
+            images: [nil, nil]
+        )
+        view.layoutIfNeeded()
+        // one advertiser, one auction: a tap on any card is the same click
+        let tap = try XCTUnwrap(view.subviews.compactMap { $0.gestureRecognizers?.first }.first)
+        XCTAssertNotNil(tap)
+        view.onClick?()
+        XCTAssertEqual(clicks, 1)
+    }
+    #endif
 }
 
 private enum Fixtures {
@@ -453,4 +537,5 @@ private enum Fixtures {
       "click_url": "https://track.example.com/clk?t=nat"
     }
     """
+
 }

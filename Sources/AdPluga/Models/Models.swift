@@ -8,6 +8,7 @@ public enum AdKind: String, Sendable, Equatable {
     case video
     case videoRewarded = "video_rewarded"
     case audio
+    case carousel
 
     public var wire: String { rawValue }
 
@@ -31,6 +32,22 @@ public enum AdSource: String, Sendable, Equatable {
     }
 }
 
+/// One card of a carousel. The whole deck shares the ad's click token and its
+/// single impression, so swiping never mints or spends anything extra.
+public struct Slide: Sendable, Equatable {
+    public let assetUrl: String
+    public let title: String?
+    public let body: String?
+    public let ctaText: String?
+
+    public init(assetUrl: String, title: String? = nil, body: String? = nil, ctaText: String? = nil) {
+        self.assetUrl = assetUrl
+        self.title = title
+        self.body = body
+        self.ctaText = ctaText
+    }
+}
+
 public struct Ad: Sendable, Equatable {
     public let id: String
     public let kind: AdKind
@@ -47,6 +64,7 @@ public struct Ad: Sendable, Equatable {
     public let rewardCurrency: String
     public let format: String?
     public let advertiserName: String?
+    public let slides: [Slide]
     public let isTest: Bool
 }
 
