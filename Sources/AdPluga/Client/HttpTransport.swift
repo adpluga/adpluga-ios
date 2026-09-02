@@ -18,7 +18,7 @@ final class HttpTransport {
         self.consent = consent
     }
 
-    func serve(slotId: String, format: String?, userHash: String?) async throws -> ServeResponse {
+    func serve(slotId: String, format: String?, userHash: String?, refreshSeq: Int = 0) async throws -> ServeResponse {
         let base = endpoint.appendingPathComponent("v1/serve")
         guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
             throw AdPlugaError.network(statusCode: -1, detail: "invalid endpoint")
@@ -26,6 +26,7 @@ final class HttpTransport {
         var items: [URLQueryItem] = [URLQueryItem(name: "slot", value: slotId)]
         if let fmt = format { items.append(URLQueryItem(name: "format", value: fmt)) }
         if let hash = userHash { items.append(URLQueryItem(name: "user_hash", value: hash)) }
+        if refreshSeq > 0 { items.append(URLQueryItem(name: "rq", value: String(refreshSeq))) }
         if !consent.state.isPersonalized {
             items.append(URLQueryItem(name: "non_personalized", value: "true"))
         }

@@ -30,6 +30,10 @@ public final class AdPlugaView: UIView {
     private var videoView: AdPlugaVideoView?
     private var videoProxy: _VideoDelegateProxy?
     private var testBadge: UIView?
+    private var refreshTimer: Timer?
+    private var refreshSeq: Int = 0
+    private var currentFormat: String?
+    private var foreground = true
 
     private let imageView: UIImageView = {
         let view = UIImageView()
@@ -65,15 +69,24 @@ public final class AdPlugaView: UIView {
 
     public func load(slotId: String, format: String? = nil) {
         cancelInternal()
+        currentSlotId = slotId
+        currentFormat = format
+        refreshSeq = 0
+        observeLifecycle()
+        reload()
+    }
+
+    /// Re-runs the current slot request, carrying the rotation index.
+    private func reload() {
         guard let pluga = AdPluga.maybeInstance else {
             delegate?.adPlugaView(self, didFailWith: AdPlugaError.notInitialized)
             return
         }
-        let slot = slotId
-        currentSlotId = slot
+        guard let slot = currentSlotId else { return }
+        let format = currentFormat
         loadTask = Task { [weak self] in
             guard let self = self else { return }
-            let response = await pluga.serve(slotId: slot, format: format)
+            let response = await pluga.serve(slotId: slot, format: format, refreshSeq: self.refreshSeq)
             guard let response = response else {
                 await MainActor.run {
                     self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.network(statusCode: -1, detail: "no fill"))
@@ -99,6 +112,7 @@ public final class AdPlugaView: UIView {
                         self.updateTestBadge(ad)
                         self.delegate?.adPlugaView(self, didLoad: ad)
                         self.attachViewability(slotId: slot, response: response, pluga: pluga)
+                        self.scheduleRefresh(response)
                     } else {
                         self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.network(statusCode: -1, detail: "asset load failed"))
                     }
@@ -112,6 +126,7 @@ public final class AdPlugaView: UIView {
                     self.updateTestBadge(ad)
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
+                    self.scheduleRefresh(response)
                 }
             case .video, .videoRewarded, .audio:
                 await MainActor.run {
@@ -122,6 +137,7 @@ public final class AdPlugaView: UIView {
                     self.updateTestBadge(ad)
                     self.delegate?.adPlugaView(self, didLoad: ad)
                     self.attachViewability(slotId: slot, response: response, pluga: pluga)
+                    self.scheduleRefresh(response)
                 }
             default:
                 await MainActor.run {
@@ -243,7 +259,66 @@ public final class AdPlugaView: UIView {
         }
     }
 
+    /// Arms the next rotation for the cadence the server published for this
+    /// slot. Nothing is scheduled when the slot has no cadence, when the app is
+    /// backgrounded, or when the value is below the industry floor.
+    @MainActor
+    private func scheduleRefresh(_ response: ServeResponse) {
+        cancelRefresh()
+        guard foreground else { return }
+        let secs = response.refreshAfterSeconds
+        guard secs >= Constants.minRefreshSeconds else { return }
+        let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(secs), repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.onRefreshTick() }
+        }
+        refreshTimer = timer
+    }
+
+    @MainActor
+    private func cancelRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    @MainActor
+    private func onRefreshTick() {
+        refreshTimer = nil
+        guard let response = currentResponse else { return }
+        // Rotating an off-screen ad would spend a decision on an impression the
+        // MRC guidelines classify as non-viewable: wait for it to come back
+        // into view instead, re-arming on the same cadence.
+        guard ViewabilityTracker.shared.isVisible(self) else {
+            scheduleRefresh(response)
+            return
+        }
+        refreshSeq += 1
+        reload()
+    }
+
+    private func observeLifecycle() {
+        let center = NotificationCenter.default
+        center.removeObserver(self, name: UIApplication.didEnterBackgroundNotification, object: nil)
+        center.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+        center.addObserver(self, selector: #selector(appDidBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        center.addObserver(self, selector: #selector(appWillForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+    }
+
+    @objc private func appDidBackground() {
+        foreground = false
+        Task { @MainActor in self.cancelRefresh() }
+    }
+
+    @objc private func appWillForeground() {
+        foreground = true
+        Task { @MainActor in
+            guard let response = self.currentResponse else { return }
+            self.scheduleRefresh(response)
+        }
+    }
+
     private func cancelInternal() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
         loadTask?.cancel()
         loadTask = nil
         if let handle = viewabilityHandle {
@@ -254,6 +329,8 @@ public final class AdPlugaView: UIView {
     }
 
     deinit {
+        refreshTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
         let handle = viewabilityHandle
         if let handle = handle {
             Task { @MainActor in

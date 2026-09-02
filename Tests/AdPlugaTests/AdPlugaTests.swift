@@ -237,6 +237,21 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertFalse(absentModel.ad.isTest)
     }
 
+    func testRotationCadenceDecodes() throws {
+        let json = """
+        {"ad":{"id":"ad-1","type":"image"},"track_token":"trk","source":"house","refresh_after_seconds":60}
+        """
+        let model = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: Data(json.utf8)).toModel()
+        XCTAssertEqual(model.refreshAfterSeconds, 60)
+    }
+
+    func testSlotWithoutCadenceNeverRotates() throws {
+        let model = try adPlugaJsonDecoder
+            .decode(ServeResponseDto.self, from: Data(Fixtures.serveResponse.utf8))
+            .toModel()
+        XCTAssertEqual(model.refreshAfterSeconds, 0)
+    }
+
     func testNativeAssetsDecodeFromFlatFields() throws {
         let data = Data(Fixtures.nativeServeResponse.utf8)
         let dto = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: data)

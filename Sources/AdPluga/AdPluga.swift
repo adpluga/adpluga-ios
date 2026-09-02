@@ -88,7 +88,7 @@ public final class AdPluga: @unchecked Sendable {
         }
     }
 
-    public func serve(slotId: String, format: String? = nil, userHash: String? = nil) async -> ServeResponse? {
+    public func serve(slotId: String, format: String? = nil, userHash: String? = nil, refreshSeq: Int = 0) async -> ServeResponse? {
         upgradeLock.lock()
         if upgradeBlocked {
             upgradeLock.unlock()
@@ -99,7 +99,7 @@ public final class AdPluga: @unchecked Sendable {
         let startMs = Self.nowMs()
         await telemetry.record(type: .serveRequest)
         do {
-            let response = try await transport.serve(slotId: slotId, format: format, userHash: userHash)
+            let response = try await transport.serve(slotId: slotId, format: format, userHash: userHash, refreshSeq: refreshSeq)
             let latency = Int(Self.nowMs() - startMs)
             await telemetry.record(type: .serveResponse, latencyMs: latency)
             emit(.adServed(slotId: slotId, ad: response.ad, at: Date()))

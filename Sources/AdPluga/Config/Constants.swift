@@ -2,8 +2,13 @@ import Foundation
 
 enum Constants {
     static let sdkPlatform = "ios"
-    static let sdkVersion = "0.4.2"
+    static let sdkVersion = "0.5.0"
     static let defaultEndpoint = "https://edge.adpluga.com"
+
+    /// Rotation cadences below this floor are ignored even when the server
+    /// sends one: it matches the 30s minimum the mobile ad industry enforces
+    /// and keeps a misconfigured slot from burning the publisher's quota.
+    static let minRefreshSeconds: Int = 30
 
     static let viewabilityThreshold: Double = 0.5
     static let viewabilityDurationMs: Int = 1_000

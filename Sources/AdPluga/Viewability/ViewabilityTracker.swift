@@ -78,6 +78,13 @@ final class ViewabilityTracker {
         }
     }
 
+    /// Whether the view currently meets the IAB pixel threshold. Used by the
+    /// refresh scheduler so a rotation never happens off-screen (MRC counts
+    /// out-of-view auto-refresh as non-viewable).
+    func isVisible(_ view: UIView) -> Bool {
+        visibleRatio(of: view) >= threshold
+    }
+
     private func visibleRatio(of view: UIView) -> Double {
         guard let window = view.window else { return 0 }
         let inWindow = view.convert(view.bounds, to: nil)

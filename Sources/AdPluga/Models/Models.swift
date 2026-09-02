@@ -59,4 +59,7 @@ public struct ServeResponse: Sendable, Equatable {
     public let clickToken: String?
     public let ttlMs: Int?
     public let quartilePings: [String: String]?
+    /// Publisher-configured rotation cadence for this slot, in seconds.
+    /// 0 means the slot must not rotate.
+    public let refreshAfterSeconds: Int
 }

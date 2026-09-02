@@ -87,6 +87,7 @@ struct ServeResponseDto: Codable {
     let conversionToken: String?
     let source: String?
     let quartilePings: [String: String]?
+    let refreshAfterSeconds: Int?
 
     enum CodingKeys: String, CodingKey {
         case ad, source
@@ -96,6 +97,7 @@ struct ServeResponseDto: Codable {
         case trackToken = "track_token"
         case conversionToken = "conversion_token"
         case quartilePings = "quartile_pings"
+        case refreshAfterSeconds = "refresh_after_seconds"
     }
 
     func toModel() -> ServeResponse {
@@ -110,7 +112,8 @@ struct ServeResponseDto: Codable {
             impressionToken: trackToken,
             clickToken: trackToken,
             ttlMs: nil,
-            quartilePings: quartilePings
+            quartilePings: quartilePings,
+            refreshAfterSeconds: refreshAfterSeconds ?? 0
         )
     }
 }
