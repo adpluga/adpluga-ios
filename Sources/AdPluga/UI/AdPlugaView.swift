@@ -311,7 +311,20 @@ public final class AdPlugaView: UIView {
         guard let ad = currentAd, let response = currentResponse, let pluga = AdPluga.maybeInstance else { return }
         if ad.kind == .html || ad.kind == .video || ad.kind == .carousel { return }
         pluga.fireClick(slotId: currentSlotId ?? "", ad: ad, url: response.clickUrl, token: response.clickToken)
+        openClickThrough(response.clickUrl)
         delegate?.adPlugaViewDidClick(self)
+    }
+
+    /// Sends the user to the advertiser. The signed click endpoint redirects to
+    /// the destination, which is why the URL is never read from the creative.
+    /// HTML and video creatives have always navigated; image ones reported the
+    /// click and went nowhere, so the advertiser paid for a tap that never
+    /// arrived.
+    private func openClickThrough(_ raw: String?) {
+        guard let raw, let url = URL(string: raw), let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https"
+        else { return }
+        UIApplication.shared.open(url, options: [:], completionHandler: nil)
     }
 
     public override func willMove(toWindow newWindow: UIWindow?) {

@@ -290,6 +290,15 @@ public final class AdPluga: @unchecked Sendable {
         stateLock.lock()
         if let existing = _instance {
             stateLock.unlock()
+            // Rotating a key revokes the previous one at once, so silently
+            // keeping the old instance would leave the app serving with a dead
+            // key and nothing to signal it.
+            if existing.publisherKey != publisherKey {
+                throw AdPlugaError.alreadyInitialized(
+                    activeKey: existing.publisherKey,
+                    requestedKey: publisherKey
+                )
+            }
             return existing
         }
         let pluga = AdPluga(

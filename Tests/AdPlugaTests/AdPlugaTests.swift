@@ -440,6 +440,41 @@ final class AdPlugaTests: XCTestCase {
         )
     }
 
+
+    func testReInitializingWithADifferentKeyThrows() throws {
+        MockURLProtocol.setHandler { request, _ in
+            MockURLProtocol.jsonResponse(url: request.url!, body: "{\"flags\":{}}")
+        }
+        let first = try AdPluga.initialize(
+            publisherKey: "pk_test_aaaaaaaa",
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        // Rotating a key revokes the previous one, so silently returning the
+        // old instance would leave the app serving with a dead key.
+        XCTAssertThrowsError(
+            try AdPluga.initialize(
+                publisherKey: "pk_test_bbbbbbbb",
+                endpoint: endpoint,
+                sessionOverride: session
+            )
+        ) { error in
+            guard case AdPlugaError.alreadyInitialized(let active, let requested) = error else {
+                XCTFail("expected alreadyInitialized, got \(error)")
+                return
+            }
+            XCTAssertEqual(active, "pk_test_aaaaaaaa")
+            XCTAssertEqual(requested, "pk_test_bbbbbbbb")
+        }
+        // Same key stays idempotent.
+        let again = try AdPluga.initialize(
+            publisherKey: "pk_test_aaaaaaaa",
+            endpoint: endpoint,
+            sessionOverride: session
+        )
+        XCTAssertTrue(again === first)
+    }
+
 }
 
 private enum Fixtures {
