@@ -2,7 +2,7 @@ import Foundation
 
 enum Constants {
     static let sdkPlatform = "ios"
-    static let sdkVersion = "0.7.0"
+    static let sdkVersion = "0.7.1"
     static let defaultEndpoint = "https://edge.adpluga.com"
 
     /// A cadence below the floor is raised to it, never dropped, so a slot
