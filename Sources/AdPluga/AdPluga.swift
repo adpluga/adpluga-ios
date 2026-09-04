@@ -136,6 +136,10 @@ public final class AdPluga: @unchecked Sendable {
         }
     }
 
+    /// True while running against a sandbox key. Used for the cadence floor
+    /// before any response has arrived.
+    public var isTestKey: Bool { publisherKey.hasPrefix("pk_test_") }
+
     public func fireImpression(slotId: String, ad: Ad, url: String? = nil, token: String) {
         Task {
             if let url = url {

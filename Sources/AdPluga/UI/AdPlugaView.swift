@@ -31,6 +31,7 @@ public final class AdPlugaView: UIView {
     private var videoProxy: _VideoDelegateProxy?
     private var carouselView: AdPlugaCarouselView?
     private var lastDeckSwipeAt: Date?
+    private var fillFailures = 0
     private var testBadge: UIView?
     private var refreshTimer: Timer?
     private var refreshSeq: Int = 0
@@ -74,6 +75,7 @@ public final class AdPlugaView: UIView {
         currentSlotId = slotId
         currentFormat = format
         refreshSeq = 0
+        fillFailures = 0
         observeLifecycle()
         reload()
     }
@@ -92,9 +94,11 @@ public final class AdPlugaView: UIView {
             guard let response = response else {
                 await MainActor.run {
                     self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.network(statusCode: -1, detail: "no fill"))
+                    self.scheduleRetry(pluga)
                 }
                 return
             }
+            await MainActor.run { self.fillFailures = 0 }
             let ad = response.ad
             switch ad.kind {
             case .image, .template:
@@ -164,6 +168,7 @@ public final class AdPlugaView: UIView {
             default:
                 await MainActor.run {
                     self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.unsupportedFormat(ad.kind.wire))
+                    self.scheduleRetry(pluga)
                 }
             }
         }
@@ -347,6 +352,24 @@ public final class AdPlugaView: UIView {
         let interval = TimeInterval(max(secs, floor))
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
             Task { @MainActor in self?.onRefreshTick() }
+        }
+        refreshTimer = timer
+    }
+
+    /// Arms another attempt after a failed fill, backing off exponentially from
+    /// the client's cadence floor. Independent of the slot's rotation cadence:
+    /// rotation is off by default, so a slot that relied on it would stay blank
+    /// for the rest of the session after a single miss.
+    @MainActor
+    private func scheduleRetry(_ pluga: AdPluga) {
+        cancelRefresh()
+        guard foreground else { return }
+        let base = pluga.isTestKey ? Constants.minRefreshSecondsTest : Constants.minRefreshSeconds
+        let secs = min(base << min(fillFailures, 10), Constants.fillRetryMaxBackoffSeconds)
+        fillFailures += 1
+        AdPlugaLogger.warn("slot \(currentSlotId ?? "") unfilled; retrying in \(secs)s")
+        let timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(secs), repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.reload() }
         }
         refreshTimer = timer
     }
