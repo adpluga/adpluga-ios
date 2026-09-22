@@ -281,6 +281,30 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertFalse(query.contains("u="), "no user id may leave the device without consent: \(query)")
     }
 
+    // An unlabelled ad image is a tap target with no name, so the label has to
+    // survive the wire and fall back when the advertiser wrote nothing.
+    func testAlternativeTextDecodesAndFallsBack() throws {
+        let withAlt = """
+        {"ad":{"id":"ad-1","type":"image","title":"Promo","alt_text":"Perfumes a 20 por cento"},"track_token":"trk","source":"direto"}
+        """
+        let labelled = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: Data(withAlt.utf8)).toModel()
+        XCTAssertEqual(labelled.ad.altText, "Perfumes a 20 por cento")
+        XCTAssertEqual(adLabel(labelled.ad), "Perfumes a 20 por cento")
+
+        let withoutAlt = """
+        {"ad":{"id":"ad-2","type":"image","title":"Promo"},"track_token":"trk","source":"direto"}
+        """
+        let bare = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: Data(withoutAlt.utf8)).toModel()
+        XCTAssertNil(bare.ad.altText)
+        XCTAssertEqual(adLabel(bare.ad), "Promo")
+
+        let nameless = """
+        {"ad":{"id":"ad-3","type":"image"},"track_token":"trk","source":"direto"}
+        """
+        let anonymous = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: Data(nameless.utf8)).toModel()
+        XCTAssertFalse(adLabel(anonymous.ad).isEmpty)
+    }
+
     func testRotationCadenceDecodes() throws {
         let json = """
         {"ad":{"id":"ad-1","type":"image"},"track_token":"trk","source":"house","refresh_after_seconds":60}

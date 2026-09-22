@@ -63,7 +63,7 @@ final class AdPlugaCarouselView: UIView, UIScrollViewDelegate {
     /// Mounts one card per slide. `images` is index-aligned with `slides`; a
     /// slide whose creative failed to load keeps its place with an empty card
     /// so the deck order the advertiser arranged is never silently reshuffled.
-    func bind(slides: [Slide], images: [UIImage?]) {
+    func bind(slides: [Slide], images: [UIImage?], fallbackLabel: String = "Anuncio") {
         for card in cards { card.removeFromSuperview() }
         cards = []
         page = 0
@@ -72,7 +72,11 @@ final class AdPlugaCarouselView: UIView, UIScrollViewDelegate {
 
         var previous: UIView?
         for (i, slide) in slides.enumerated() {
-            let card = makeCard(slide: slide, image: images.indices.contains(i) ? images[i] : nil)
+            let card = makeCard(
+                slide: slide,
+                image: images.indices.contains(i) ? images[i] : nil,
+                label: slide.title?.isEmpty == false ? slide.title! : fallbackLabel
+            )
             scrollView.addSubview(card)
             NSLayoutConstraint.activate([
                 card.topAnchor.constraint(equalTo: scrollView.topAnchor),
@@ -120,12 +124,14 @@ final class AdPlugaCarouselView: UIView, UIScrollViewDelegate {
         onSwipe?()
     }
 
-    private func makeCard(slide: Slide, image: UIImage?) -> UIView {
+    private func makeCard(slide: Slide, image: UIImage?, label: String) -> UIView {
         let card = UIView()
         card.translatesAutoresizingMaskIntoConstraints = false
         card.clipsToBounds = true
 
         let imageView = UIImageView(image: image)
+        imageView.isAccessibilityElement = true
+        imageView.accessibilityLabel = label
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.translatesAutoresizingMaskIntoConstraints = false

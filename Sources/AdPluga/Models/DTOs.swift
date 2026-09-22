@@ -20,6 +20,7 @@ struct AdDto: Codable {
     let html: String?
     let billingUrl: String?
     let title: String?
+    let altText: String?
     let body: String?
     let ctaText: String?
     let sponsoredBy: String?
@@ -43,6 +44,7 @@ struct AdDto: Codable {
         case id, type, html, title, body, width, height, format, test, slides
         case assetUrl = "asset_url"
         case billingUrl = "billing_url"
+        case altText = "alt_text"
         case ctaText = "cta_text"
         case sponsoredBy = "sponsored_by"
         case iconUrl = "icon_url"
@@ -74,6 +76,7 @@ struct AdDto: Codable {
             rewardCurrency: rewardCurrency ?? "COIN",
             format: format,
             advertiserName: advertiserName,
+            altText: altText,
             slides: buildSlides(),
             isTest: test ?? false
         )

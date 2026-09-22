@@ -113,6 +113,8 @@ public final class AdPlugaView: UIView {
                         self.teardownHtml()
                         self.teardownCarousel()
                         self.imageView.image = image
+                        self.imageView.isAccessibilityElement = true
+                        self.imageView.accessibilityLabel = adLabel(response.ad)
                         self.imageView.isHidden = false
                         self.currentAd = ad
                         self.currentResponse = response
@@ -235,7 +237,7 @@ public final class AdPlugaView: UIView {
             self.delegate?.adPlugaViewDidClick(self)
         }
         view.onSwipe = { [weak self] in self?.lastDeckSwipeAt = Date() }
-        view.bind(slides: ad.slides, images: images)
+        view.bind(slides: ad.slides, images: images, fallbackLabel: adLabel(ad))
         carouselView = view
     }
 

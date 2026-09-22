@@ -64,6 +64,11 @@ public struct Ad: Sendable, Equatable {
     public let rewardCurrency: String
     public let format: String?
     public let advertiserName: String?
+
+    /// Announced by VoiceOver in place of the creative. An ad is never
+    /// decorative, so a view with nothing here falls back to the title rather
+    /// than leaving the image unlabelled.
+    public let altText: String?
     public let slides: [Slide]
     public let isTest: Bool
 }
