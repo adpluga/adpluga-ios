@@ -30,7 +30,7 @@ Or in `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/adpluga/adpluga-ios.git", from: "0.7.2"),
+    .package(url: "https://github.com/adpluga/adpluga-ios.git", from: "0.7.3"),
 ]
 ```
 
@@ -39,21 +39,17 @@ dependencies: [
 ```swift
 import AdPluga
 
-// AppDelegate.swift
-AdPluga.initialize(publisherKey: "pk_test_...")
+// AppDelegate: initialize throws on a malformed key.
+try AdPluga.initialize(publisherKey: "pk_test_...")
 
-// UIView
-let bannerView = AdBannerView(slotId: "slot_home", format: "banner_320x100")
-bannerView.delegate = self
-bannerView.load()
-
-// SwiftUI
-struct HomeAd: View {
-    var body: some View {
-        AdPlugaBannerView(slotId: "slot_home", format: "banner_320x100")
-    }
-}
+// A view controller
+let banner = AdPlugaView(frame: CGRect(x: 0, y: 0, width: 320, height: 100))
+banner.delegate = self
+view.addSubview(banner)
+banner.load(slotId: "your-slot-id")
 ```
+
+`AdPlugaView` is a `UIView`; in SwiftUI, wrap it in a `UIViewRepresentable`. iOS 14+.
 
 Integration guides and API reference: <https://adpluga.com/en/devs/sdks/> · quick start in two minutes: <https://adpluga.com/en/devs/quickstart/>.
 
