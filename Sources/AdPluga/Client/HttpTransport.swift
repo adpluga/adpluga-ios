@@ -24,7 +24,7 @@ final class HttpTransport {
             throw AdPlugaError.network(statusCode: -1, detail: "invalid endpoint")
         }
         var items: [URLQueryItem] = [URLQueryItem(name: "slot", value: slotId)]
-        if let fmt = format { items.append(URLQueryItem(name: "format", value: fmt)) }
+        if let fmt = format { items.append(URLQueryItem(name: "fmt", value: fmt)) }
         if let hash = userHash { items.append(URLQueryItem(name: "u", value: hash)) }
         if refreshSeq > 0 { items.append(URLQueryItem(name: "rq", value: String(refreshSeq))) }
         if !consent.state.isPersonalized {

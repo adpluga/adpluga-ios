@@ -53,6 +53,25 @@ final class AdPlugaTests: XCTestCase {
         XCTAssertEqual(serveRequests.first?.header(Constants.platformHeader), "ios")
     }
 
+    // The server reads the size hint from fmt only; format= was ignored, so no
+    // iOS request ever carried a size.
+    func testServeSendsTheSizeHintAsFmt() async throws {
+        MockURLProtocol.setHandler { request, _ in
+            let url = request.url!
+            if url.path == "/v1/serve" {
+                return MockURLProtocol.jsonResponse(url: url, body: Fixtures.serveResponse)
+            }
+            return MockURLProtocol.jsonResponse(url: url, body: "{\"flags\":{}}")
+        }
+        let pluga = try AdPluga.initialize(publisherKey: publisherKey, endpoint: endpoint, sessionOverride: session)
+        _ = await pluga.serve(slotId: "slot_1", format: "320x100")
+
+        let serve = MockURLProtocol.recorded().first { $0.path == "/v1/serve" }
+        let items = URLComponents(url: serve!.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(items.first { $0.name == "fmt" }?.value, "320x100")
+        XCTAssertNil(items.first { $0.name == "format" })
+    }
+
     func testServeShortCircuitsAfter426() async throws {
         MockURLProtocol.setHandler { request, _ in
             let url = request.url!
