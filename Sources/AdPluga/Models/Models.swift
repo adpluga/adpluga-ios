@@ -71,6 +71,12 @@ public struct Ad: Sendable, Equatable {
     public let altText: String?
     public let slides: [Slide]
     public let isTest: Bool
+
+    /// A mediation bidder's own pixels, fired alongside our impression and
+    /// click so the SSP counts (and pays for) what it served. Empty for
+    /// first-party creatives.
+    public let impressionTrackers: [String]
+    public let clickTrackers: [String]
 }
 
 public struct ServeResponse: Sendable, Equatable {

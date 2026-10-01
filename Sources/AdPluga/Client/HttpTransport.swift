@@ -11,19 +11,22 @@ final class HttpTransport {
     private let session: URLSession
     private let consent: ConsentStore
     private let tcf: TCFStorage
+    private let userAgent: String
 
     init(
         publisherKey: String,
         endpoint: URL,
         session: URLSession,
         consent: ConsentStore,
-        tcf: TCFStorage = UserDefaultsTCFStorage()
+        tcf: TCFStorage = UserDefaultsTCFStorage(),
+        userAgent: String = DeviceUserAgent.current
     ) {
         self.publisherKey = publisherKey
         self.endpoint = endpoint
         self.session = session
         self.consent = consent
         self.tcf = tcf
+        self.userAgent = userAgent
     }
 
     func serve(slotId: String, format: String?, userHash: String?, refreshSeq: Int = 0) async throws -> ServeResponse {
@@ -58,6 +61,7 @@ final class HttpTransport {
         request.httpMethod = "GET"
         applyStandardHeaders(&request)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(userAgent, forHTTPHeaderField: Constants.deviceUserAgentHeader)
         if let tcString = signals.tcString {
             request.setValue(tcString, forHTTPHeaderField: Constants.consentStringHeader)
         }
@@ -123,12 +127,24 @@ final class HttpTransport {
         return URL(string: path, relativeTo: endpoint)
     }
 
-    func beacon(url urlString: String) async {
-        guard let url = absolute(urlString) else { return }
+    /// Our own endpoint gets the SDK headers; a bidder's pixel (burl,
+    /// impression and click trackers) gets only the device User-Agent, so the
+    /// SSP sees the UA it priced in the bid request.
+    func makeBeaconRequest(url urlString: String) -> URLRequest? {
+        guard let url = absolute(urlString) else { return nil }
         var request = URLRequest(url: url, timeoutInterval: TimeInterval(Constants.networkTrackTimeoutMs) / 1000.0)
         request.httpMethod = "GET"
-        request.setValue(Constants.sdkPlatform, forHTTPHeaderField: Constants.platformHeader)
-        request.setValue(Constants.sdkVersion, forHTTPHeaderField: Constants.versionHeader)
+        if url.host == endpoint.host {
+            request.setValue(Constants.sdkPlatform, forHTTPHeaderField: Constants.platformHeader)
+            request.setValue(Constants.sdkVersion, forHTTPHeaderField: Constants.versionHeader)
+        } else {
+            request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        }
+        return request
+    }
+
+    func beacon(url urlString: String) async {
+        guard let request = makeBeaconRequest(url: urlString) else { return }
         do {
             _ = try await sendWithRetry(request: request)
         } catch {

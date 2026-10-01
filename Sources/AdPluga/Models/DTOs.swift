@@ -19,6 +19,8 @@ struct AdDto: Codable {
     let assetUrl: String?
     let html: String?
     let billingUrl: String?
+    let impressionTrackers: [String]?
+    let clickTrackers: [String]?
     let title: String?
     let altText: String?
     let body: String?
@@ -44,6 +46,8 @@ struct AdDto: Codable {
         case id, type, html, title, body, width, height, format, test, slides
         case assetUrl = "asset_url"
         case billingUrl = "billing_url"
+        case impressionTrackers = "impression_trackers"
+        case clickTrackers = "click_trackers"
         case altText = "alt_text"
         case ctaText = "cta_text"
         case sponsoredBy = "sponsored_by"
@@ -78,7 +82,9 @@ struct AdDto: Codable {
             advertiserName: advertiserName,
             altText: altText,
             slides: buildSlides(),
-            isTest: test ?? false
+            isTest: test ?? false,
+            impressionTrackers: impressionTrackers ?? [],
+            clickTrackers: clickTrackers ?? []
         )
     }
 

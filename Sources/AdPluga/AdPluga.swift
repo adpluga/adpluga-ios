@@ -151,6 +151,9 @@ public final class AdPluga: @unchecked Sendable {
                     "ad_id": ad.id,
                 ])
             }
+            for tracker in ad.impressionTrackers {
+                await transport.beacon(url: tracker)
+            }
             await telemetry.record(type: .impression)
             emit(.impression(slotId: slotId, adId: ad.id, at: Date()))
         }
@@ -181,6 +184,9 @@ public final class AdPluga: @unchecked Sendable {
                     "event": "click",
                     "ad_id": ad.id,
                 ])
+            }
+            for tracker in ad.clickTrackers {
+                await transport.beacon(url: tracker)
             }
             await telemetry.record(type: .click)
             emit(.click(slotId: slotId, adId: ad.id, at: Date()))
