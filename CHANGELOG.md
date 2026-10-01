@@ -4,6 +4,24 @@ All notable changes to the AdPluga iOS SDK are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.4] — 2026-10
+
+### Changed
+- Licensed under the Apache License 2.0. The previous licence pointed to terms
+  at adpluga.com/legal/sdk-license that were never published, so it granted no
+  clear right to use the SDK.
+
+### Added
+- `ConsentState.tcfString`, the IAB TCF v2 consent string to send with each
+  ad request.
+
+### Fixed
+- GDPR applicability and the TCF consent string were never sent to the server,
+  so mediation bid requests left without them. They are sent now (`gdpr` and
+  `X-Consent-String`), from `ConsentState` or, when the app sets nothing, read
+  from the IAB TCF keys a CMP stores in UserDefaults (`IABTCF_gdprApplies`,
+  `IABTCF_TCString`).
+
 ## [0.7.3] — 2026-09
 
 ### Fixed

@@ -10,15 +10,30 @@ final class HttpTransport {
     private let endpoint: URL
     private let session: URLSession
     private let consent: ConsentStore
+    private let tcf: TCFStorage
 
-    init(publisherKey: String, endpoint: URL, session: URLSession, consent: ConsentStore) {
+    init(
+        publisherKey: String,
+        endpoint: URL,
+        session: URLSession,
+        consent: ConsentStore,
+        tcf: TCFStorage = UserDefaultsTCFStorage()
+    ) {
         self.publisherKey = publisherKey
         self.endpoint = endpoint
         self.session = session
         self.consent = consent
+        self.tcf = tcf
     }
 
     func serve(slotId: String, format: String?, userHash: String?, refreshSeq: Int = 0) async throws -> ServeResponse {
+        let request = try makeServeRequest(slotId: slotId, format: format, userHash: userHash, refreshSeq: refreshSeq)
+        let (data, _) = try await sendWithRetry(request: request)
+        let dto = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: data)
+        return dto.toModel()
+    }
+
+    func makeServeRequest(slotId: String, format: String?, userHash: String?, refreshSeq: Int = 0) throws -> URLRequest {
         let base = endpoint.appendingPathComponent("v1/serve")
         guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
             throw AdPlugaError.network(statusCode: -1, detail: "invalid endpoint")
@@ -27,8 +42,13 @@ final class HttpTransport {
         if let fmt = format { items.append(URLQueryItem(name: "fmt", value: fmt)) }
         if let hash = userHash { items.append(URLQueryItem(name: "u", value: hash)) }
         if refreshSeq > 0 { items.append(URLQueryItem(name: "rq", value: String(refreshSeq))) }
-        if !consent.state.isPersonalized {
+        let state = consent.state
+        if !state.isPersonalized {
             items.append(URLQueryItem(name: "non_personalized", value: "true"))
+        }
+        let signals = TCFSignals.resolve(state: state, storage: tcf)
+        if let applies = signals.gdprApplies {
+            items.append(URLQueryItem(name: "gdpr", value: applies ? "1" : "0"))
         }
         components.queryItems = items
         guard let url = components.url else {
@@ -38,9 +58,10 @@ final class HttpTransport {
         request.httpMethod = "GET"
         applyStandardHeaders(&request)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, _) = try await sendWithRetry(request: request)
-        let dto = try adPlugaJsonDecoder.decode(ServeResponseDto.self, from: data)
-        return dto.toModel()
+        if let tcString = signals.tcString {
+            request.setValue(tcString, forHTTPHeaderField: Constants.consentStringHeader)
+        }
+        return request
     }
 
     func fetchFeatures(etag: String?) async throws -> FeaturesResult {

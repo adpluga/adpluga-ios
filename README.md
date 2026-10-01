@@ -7,7 +7,7 @@ native, interstitial, rewarded, HTML5, and video formats.
 - **Distribution**: Swift Package Manager (primary) · CocoaPods (planned)
 - **iOS**: 14.0+ · **Swift**: 5.9+
 - **Zero external dependencies** (Foundation, UIKit, CryptoKit only)
-- **License**: Proprietary — see [LICENSE](./LICENSE)
+- **License**: Apache-2.0 — see [LICENSE](./LICENSE)
 
 ## Why AdPluga
 
