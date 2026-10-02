@@ -12,6 +12,10 @@ public enum AdPlugaError: Error, LocalizedError, Equatable {
     case upgradeRequired(minVersion: String?)
     case consentDenied
     case unsupportedFormat(String)
+    /// Nothing paid to show. Raised instead of drawing the house fallback when
+    /// the slot runs inside another SDK's waterfall, so the next network can
+    /// still fill it.
+    case noFill
 
     public var errorDescription: String? {
         switch self {
@@ -29,6 +33,8 @@ public enum AdPlugaError: Error, LocalizedError, Equatable {
             return "Consent denied."
         case .unsupportedFormat(let kind):
             return "Unsupported ad format: \(kind)"
+        case .noFill:
+            return "No paid ad for this slot."
         }
     }
 }

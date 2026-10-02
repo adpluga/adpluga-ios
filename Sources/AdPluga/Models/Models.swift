@@ -23,6 +23,8 @@ public enum AdSource: String, Sendable, Equatable {
     case house
     case deal
     case mediation
+    /// A network AdPluga sells to on the publisher's behalf; paid demand.
+    case platformMediation = "platform_mediation"
     case test
 
     public var wire: String { rawValue }

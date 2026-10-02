@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [0.7.5] — 2026-10
 
 ### Added
+- `AdPlugaView.mediated`: inside another SDK's waterfall the view never
+  rotates or retries on its own and reports the house fallback as
+  `AdPlugaError.noFill`. The AdMob, AppLovin MAX and LevelPlay adapters that
+  use it live in separate packages under `ios-adapters/`, so this package
+  keeps no ad-network dependency.
+- `AdPlugaError.noFill`, `AdPluga.sdkVersion`, `MediationSlot`, and
+  `onImpression`/`onClick` on `InterstitialAd` and `RewardedAd`.
 - Fires a mediation bidder's own impression and click trackers
   (`impression_trackers`, `click_trackers` on the serve response) with ours.
   The SSP counts the impression it pays for from its VAST `<Impression>` or
@@ -16,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   requests whose UA reads as a server.
 
 ### Fixed
+- `platform_mediation` was read as `house`, so paid demand from AdPluga's
+  platform networks looked like the unpaid fallback.
 - A bidder's pixel (burl and trackers) no longer receives the SDK headers;
   it gets the device User-Agent instead.
 

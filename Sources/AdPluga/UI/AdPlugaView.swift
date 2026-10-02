@@ -19,6 +19,13 @@ public extension AdPlugaViewDelegate {
 public final class AdPlugaView: UIView {
     public weak var delegate: AdPlugaViewDelegate?
 
+    /// Set by an adapter that runs this view inside another SDK's waterfall
+    /// (AdMob, AppLovin MAX, LevelPlay). The host owns refresh and retry, so
+    /// the view never rotates or retries by itself, and the house fallback is
+    /// reported as `AdPlugaError.noFill` instead of drawn, letting the next
+    /// network fill the slot.
+    public var mediated = false
+
     private var currentAd: Ad?
     private var currentResponse: ServeResponse?
     private var currentSlotId: String?
@@ -96,6 +103,10 @@ public final class AdPlugaView: UIView {
                     self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.network(statusCode: -1, detail: "no fill"))
                     self.scheduleRetry(pluga)
                 }
+                return
+            }
+            if await MainActor.run(body: { self.mediated }) && response.ad.source == .house {
+                await MainActor.run { self.delegate?.adPlugaView(self, didFailWith: AdPlugaError.noFill) }
                 return
             }
             await MainActor.run { self.fillFailures = 0 }
@@ -347,7 +358,7 @@ public final class AdPlugaView: UIView {
     @MainActor
     private func scheduleRefresh(_ response: ServeResponse) {
         cancelRefresh()
-        guard foreground else { return }
+        guard foreground, !mediated else { return }
         let secs = response.refreshAfterSeconds
         guard secs > 0 else { return }
         let floor = response.ad.isTest ? Constants.minRefreshSecondsTest : Constants.minRefreshSeconds
@@ -365,7 +376,7 @@ public final class AdPlugaView: UIView {
     @MainActor
     private func scheduleRetry(_ pluga: AdPluga) {
         cancelRefresh()
-        guard foreground else { return }
+        guard foreground, !mediated else { return }
         let base = pluga.isTestKey ? Constants.minRefreshSecondsTest : Constants.minRefreshSeconds
         let secs = min(base << min(fillFailures, 10), Constants.fillRetryMaxBackoffSeconds)
         fillFailures += 1

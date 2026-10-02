@@ -278,6 +278,9 @@ public final class AdPluga: @unchecked Sendable {
         Int64(Date().timeIntervalSince1970 * 1000)
     }
 
+    /// This SDK's version, reported by the mediation adapters to their host.
+    public static let sdkVersion = Constants.sdkVersion
+
     @discardableResult
     public static func initialize(
         publisherKey: String,

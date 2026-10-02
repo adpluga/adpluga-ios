@@ -9,6 +9,11 @@ public final class RewardedAd {
     private let response: ServeResponse
     private var impressionFired = false
 
+    /// Called once when the ad is on screen and its impression is recorded.
+    public var onImpression: (() -> Void)?
+    /// Called on every tap through to the advertiser.
+    public var onClick: (() -> Void)?
+
     fileprivate init(slotId: String, response: ServeResponse) {
         self.slotId = slotId
         self.response = response
@@ -57,6 +62,7 @@ public final class RewardedAd {
             onClick: { [weak self, weak pluga] in
                 guard let self = self, let pluga = pluga else { return }
                 pluga.fireClick(slotId: self.slotId, ad: self.ad, url: self.response.clickUrl, token: self.response.clickToken)
+                self.onClick?()
             },
             onReward: { onReward(rewardAmount, rewardCurrency) },
             onDismiss: { onDismiss?() }
@@ -67,6 +73,7 @@ public final class RewardedAd {
             self.impressionFired = true
             pluga.fireImpression(slotId: self.slotId, ad: self.ad, url: self.response.impressionUrl, token: self.response.impressionToken)
             pluga.fireViewable(slotId: self.slotId, ad: self.ad, token: self.response.impressionToken)
+            self.onImpression?()
         }
         presenter.present(controller, animated: true)
     }
